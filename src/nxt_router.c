@@ -366,6 +366,7 @@ nxt_router_start_app_process_handler(nxt_task_t *task, nxt_port_t *port,
     }
 
     nxt_buf_cpystr(b, &app->name);
+
     *b->mem.free++ = '\0';
     nxt_buf_cpystr(b, &app->conf);
 
@@ -882,6 +883,8 @@ nxt_router_conf_data_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
     if (nxt_slow_path(tmcf == NULL)) {
         return;
     }
+
+    //nxt_log(task, NXT_LOG_INFO, "daks in nxt_router_conf_data_handler");
 
     nxt_debug(task, "nxt_router_conf_data_handler(%O): %*s",
               nxt_buf_used_size(msg->buf),
@@ -1464,6 +1467,8 @@ nxt_router_conf_create(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
 #endif
     static nxt_str_t  static_path = nxt_string("/settings/http/static");
     static nxt_str_t  websocket_path = nxt_string("/settings/http/websocket");
+
+    //nxt_log(task, NXT_LOG_INFO, "daks in nxt_router_conf_create");
 
     conf = nxt_conf_json_parse(tmcf->mem_pool, start, end, NULL);
     if (conf == NULL) {
@@ -4097,6 +4102,8 @@ nxt_router_app_process_request(nxt_task_t *task, void *obj, void *data)
 
     req_app_link = data;
 
+    //nxt_log(task, NXT_LOG_INFO, "daks in nxt_router_app_process_request");
+
 #if (NXT_DEBUG)
     {
     nxt_app_t  *app;
@@ -4780,6 +4787,8 @@ nxt_router_process_http_request(nxt_task_t *task, nxt_http_request_t *r,
     nxt_request_app_link_t  ra_local, *req_app_link;
     nxt_request_rpc_data_t  *req_rpc_data;
 
+    //nxt_log(task, NXT_LOG_INFO, "daks in nxt_router_process_http_request");
+
     engine = task->thread->engine;
 
     req_rpc_data = nxt_port_rpc_register_handler_ex(task, engine->port,
@@ -4871,6 +4880,8 @@ nxt_router_app_prepare_request(nxt_task_t *task,
         nxt_process_connected_port_add(port->process, reply_port);
     }
 
+    nxt_log(task, NXT_LOG_INFO, "Preparing message for buffer daks");
+
     buf = nxt_router_prepare_msg(task, req_app_link->request, port,
                                  nxt_app_msg_prefix[port->app->type]);
 
@@ -4880,7 +4891,7 @@ nxt_router_app_prepare_request(nxt_task_t *task,
         goto release_port;
     }
 
-    nxt_debug(task, "about to send %O bytes buffer to app process port %d",
+    nxt_log(task, NXT_LOG_INFO, "daks about to send %O bytes buffer to app process port %d",
                     nxt_buf_used_size(buf),
                     port->socket.fd);
 
@@ -4986,6 +4997,8 @@ static nxt_buf_t *
 nxt_router_prepare_msg(nxt_task_t *task, nxt_http_request_t *r,
     nxt_port_t *port, const nxt_str_t *prefix)
 {
+    //nxt_log(task, NXT_LOG_INFO, "daks in router prepare message");
+
     void                *target_pos, *query_pos;
     u_char              *pos, *end, *p, c;
     size_t              fields_count, req_size, size, free_size;
@@ -5017,6 +5030,8 @@ nxt_router_prepare_msg(nxt_task_t *task, nxt_http_request_t *r,
     } nxt_list_loop;
 
     req_size += fields_count * sizeof(nxt_unit_field_t);
+
+    nxt_log(task, NXT_LOG_INFO, "daks req size=%d", req_size);
 
     if (nxt_slow_path(req_size > PORT_MMAP_DATA_SIZE)) {
         nxt_alert(task, "headers to big to fit in shared memory (%d)",
@@ -5127,10 +5142,10 @@ nxt_router_prepare_msg(nxt_task_t *task, nxt_http_request_t *r,
             req->cookie_field = dst_field - req->fields;
         }
 
-        nxt_debug(task, "add field 0x%04Xd, %d, %d, %p : %d %p",
-                  (int) field->hash, (int) field->skip,
-                  (int) field->name_length, field->name,
-                  (int) field->value_length, field->value);
+        //nxt_log(task, NXT_LOG_INFO, "daks add field 0x%04Xd, %d, %d, %p : %d %p",
+                  //(int) field->hash, (int) field->skip,
+                  //(int) field->name_length, field->name,
+                  //(int) field->value_length, field->value);
 
         if (prefix->length != 0) {
             nxt_unit_sptr_set(&dst_field->name, p);
@@ -5155,13 +5170,14 @@ nxt_router_prepare_msg(nxt_task_t *task, nxt_http_request_t *r,
 
         } else {
             nxt_unit_sptr_set(&dst_field->name, p);
-            p = nxt_cpymem(p, field->name, field->name_length);
+            p = nxt_cpymem(p, field->name, field->name_length);             
+                       
         }
 
         *p++ = '\0';
 
         nxt_unit_sptr_set(&dst_field->value, p);
-        p = nxt_cpymem(p, field->value, field->value_length);
+        p = nxt_cpymem(p, field->value, field->value_length);                
 
         if (prefix->length != 0) {
             dup_iter = iter;
@@ -5187,7 +5203,7 @@ nxt_router_prepare_msg(nxt_task_t *task, nxt_http_request_t *r,
             }
         }
 
-        *p++ = '\0';
+        *p++ = '\0';      
 
         dst_field++;
     }
@@ -5233,6 +5249,8 @@ nxt_router_prepare_msg(nxt_task_t *task, nxt_http_request_t *r,
 
             if (free_size > 0) {
                 copy_size = nxt_min(free_size, size);
+
+                nxt_log(task, NXT_LOG_INFO, "%s", pos);  
 
                 buf->mem.free = nxt_cpymem(buf->mem.free, pos, copy_size);
 

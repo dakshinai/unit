@@ -576,11 +576,19 @@ nxt_port_read_enable(nxt_task_t *task, nxt_port_t *port)
 
 
 void
-nxt_port_read_close(nxt_port_t *port)
+nxt_port_read_close(nxt_task_t *task, nxt_port_t *port)
 {
+    if (port==NULL){
+
+        nxt_log(task, NXT_LOG_INFO, "port is NULL");
+
+    }
+
     port->socket.read_ready = 0;
     port->socket.read = NXT_EVENT_INACTIVE;
+    //nxt_log(task, NXT_LOG_INFO, "nxt_port_read_close 1");
     nxt_socket_close(port->socket.task, port->pair[0]);
+    //nxt_log(task, NXT_LOG_INFO, "nxt_port_read_close 2");
     port->pair[0] = -1;
 }
 

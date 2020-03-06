@@ -30,19 +30,21 @@ nxt_uid_t  nxt_euid;
 nxt_gid_t  nxt_egid;
 
 nxt_bool_t  nxt_proc_conn_matrix[NXT_PROCESS_MAX][NXT_PROCESS_MAX] = {
-    { 1, 1, 1, 1, 1 },
-    { 1, 0, 0, 0, 0 },
-    { 1, 0, 0, 1, 0 },
-    { 1, 0, 1, 0, 1 },
-    { 1, 0, 0, 0, 0 },
+    { 1, 1, 1, 1, 1, 1 },
+    { 1, 0, 0, 0, 0, 0 },
+    { 1, 0, 0, 1, 0, 1 },
+    { 1, 0, 1, 0, 1, 0 },
+    { 1, 0, 0, 0, 0, 0 },
+    { 1, 0, 1, 0, 1, 0 },
 };
 
 nxt_bool_t  nxt_proc_remove_notify_matrix[NXT_PROCESS_MAX][NXT_PROCESS_MAX] = {
-    { 0, 0, 0, 0, 0 },
-    { 0, 0, 0, 0, 0 },
-    { 0, 0, 0, 1, 0 },
-    { 0, 0, 1, 0, 1 },
-    { 0, 0, 0, 1, 0 },
+    { 0, 0, 0, 0, 0, 0},
+    { 0, 0, 0, 0, 0, 0},
+    { 0, 0, 0, 1, 0, 1},
+    { 0, 0, 1, 0, 1, 0},
+    { 0, 0, 0, 1, 0, 1},
+    { 0, 0, 1, 0, 1, 0},
 };
 
 
@@ -60,7 +62,7 @@ nxt_process_worker_setup(nxt_task_t *task, nxt_process_t *process, int parentfd)
     pid  = getpid();
     rpid = 0;
     rt   = task->thread->runtime;
-    init = process->init;
+    init = process->init;    
 
     /* Setup the worker process. */
 
@@ -127,7 +129,7 @@ nxt_process_worker_setup(nxt_task_t *task, nxt_process_t *process, int parentfd)
 
     } nxt_runtime_process_loop;
 
-    nxt_runtime_process_add(task, process);
+    nxt_runtime_process_add(task, process);  
 
     nxt_process_start(task, process);
 
@@ -173,7 +175,7 @@ nxt_process_create(nxt_task_t *task, nxt_process_t *process)
 
         if (nxt_slow_path(close(pipefd[1]) == -1)) {
             nxt_alert(task, "failed to close writer pipe fd");
-        }
+        } 
 
         ret = nxt_process_worker_setup(task, process, pipefd[0]);
         if (nxt_slow_path(ret != NXT_OK)) {
@@ -270,20 +272,22 @@ nxt_process_start(nxt_task_t *task, nxt_process_t *process)
     nxt_runtime_t                *rt;
     nxt_process_init_t           *init;
     nxt_event_engine_t           *engine;
-    const nxt_event_interface_t  *interface;
+    const nxt_event_interface_t  *interface;    
 
     init = process->init;
 
-    nxt_log(task, NXT_LOG_INFO, "%s started", init->name);
+    nxt_log(task, NXT_LOG_INFO, "%s started-daks", init->name);
 
     nxt_process_title(task, "unit: %s", init->name);
 
     thread = task->thread;
-    rt     = thread->runtime;
+    rt     = thread->runtime;  
 
     nxt_random_init(&thread->random);
 
     cap_setid = rt->capabilities.setid;
+
+    //nxt_log(task, NXT_LOG_INFO, "call here a");
 
 #if (NXT_HAVE_CLONE_NEWUSER)
     if (!cap_setid && NXT_CLONE_USER(init->isolation.clone.flags)) {
@@ -293,15 +297,17 @@ nxt_process_start(nxt_task_t *task, nxt_process_t *process)
 
     if (cap_setid) {
         ret = nxt_credential_setgids(task, init->user_cred);
-        if (nxt_slow_path(ret != NXT_OK)) {
+        if (nxt_slow_path(ret != NXT_OK)) {            
             goto fail;
         }
 
         ret = nxt_credential_setuid(task, init->user_cred);
-        if (nxt_slow_path(ret != NXT_OK)) {
+        if (nxt_slow_path(ret != NXT_OK)) {            
             goto fail;
         }
     }
+
+    //nxt_log(task, NXT_LOG_INFO, "call here b");
 
     rt->type = init->type;
 
@@ -311,32 +317,43 @@ nxt_process_start(nxt_task_t *task, nxt_process_t *process)
     engine->signals->sigev = init->signals;
 
     interface = nxt_service_get(rt->services, "engine", rt->engine);
-    if (nxt_slow_path(interface == NULL)) {
+    //nxt_log(task, NXT_LOG_INFO, "call here c");
+    if (nxt_slow_path(interface == NULL)) {        
         goto fail;
     }
 
-    if (nxt_event_engine_change(engine, interface, rt->batch) != NXT_OK) {
+    if (nxt_event_engine_change(engine, interface, rt->batch) != NXT_OK) {        
         goto fail;
     }
 
     ret = nxt_runtime_thread_pool_create(thread, rt, rt->auxiliary_threads,
                                          60000 * 1000000LL);
-    if (nxt_slow_path(ret != NXT_OK)) {
+    //nxt_log(task, NXT_LOG_INFO, "call here d");
+    if (nxt_slow_path(ret != NXT_OK)) {        
         goto fail;
-    }
+    }    
 
     main_port = rt->port_by_type[NXT_PROCESS_MAIN];
 
-    nxt_port_read_close(main_port);
+    //nxt_log(task, NXT_LOG_INFO, "call here 1");
+
+    nxt_port_read_close(task, main_port);
+
+    //nxt_log(task, NXT_LOG_INFO, "call here 2");
     nxt_port_write_enable(task, main_port);
+    //nxt_log(task, NXT_LOG_INFO, "call here 3");
 
     port = nxt_process_port_first(process);
+    //nxt_log(task, NXT_LOG_INFO, "call here 4");
 
     nxt_port_write_close(port);
+    //nxt_log(task, NXT_LOG_INFO, "call here 5");
 
     ret = init->start(task, init->data);
+    //nxt_log(task, NXT_LOG_INFO, "call here 6");
+    
 
-    if (nxt_slow_path(ret != NXT_OK)) {
+    if (nxt_slow_path(ret != NXT_OK)) {        
         goto fail;
     }
 
@@ -345,16 +362,19 @@ nxt_process_start(nxt_task_t *task, nxt_process_t *process)
     ret = nxt_port_socket_write(task, main_port, NXT_PORT_MSG_PROCESS_READY,
                                 -1, init->stream, 0, NULL);
 
-    if (nxt_slow_path(ret != NXT_OK)) {
-        nxt_log(task, NXT_LOG_ERR, "failed to send READY message to main");
+    //nxt_log(task, NXT_LOG_INFO, "call here e");
 
+    if (nxt_slow_path(ret != NXT_OK)) {
+        nxt_log(task, NXT_LOG_ERR, "failed to send READY message to main");        
         goto fail;
     }
+
+    //nxt_log(task, NXT_LOG_INFO, "call here f");
 
     return;
 
 fail:
-
+    nxt_log(task, NXT_LOG_INFO, "exit call here");
     exit(1);
 }
 

@@ -1222,6 +1222,8 @@ nxt_http_routes_resolve(nxt_task_t *task, nxt_router_temp_conf_t *tmcf)
     nxt_http_route_t   **route, **end;
     nxt_http_routes_t  *routes;
 
+    //nxt_log(task, NXT_LOG_INFO, "daks in nxt_http_routes_resolve");
+
     routes = tmcf->router_conf->routes;
 
     if (routes != NULL) {
@@ -1249,6 +1251,8 @@ nxt_http_route_resolve(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
     nxt_int_t               ret;
     nxt_http_route_match_t  **match, **end;
 
+    //nxt_log(task, NXT_LOG_INFO, "daks in nxt_http_route_resolve");
+
     match = &route->match[0];
     end = match + route->items;
 
@@ -1272,7 +1276,7 @@ nxt_http_action_resolve(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
     nxt_str_t   *targets;
     nxt_int_t   ret;
     nxt_uint_t  i;
-    nxt_str_t   segments[3];
+    nxt_str_t   segments[3];        
 
     if (action->handler != NULL) {
         if (action->handler == nxt_http_static_handler
@@ -1395,6 +1399,8 @@ nxt_http_action_create(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
 {
     nxt_http_action_t  *action;
 
+    //nxt_log(task, NXT_LOG_INFO, "daks in nxt_http_action_create");
+
     action = nxt_mp_alloc(tmcf->router_conf->mem_pool,
                           sizeof(nxt_http_action_t));
     if (nxt_slow_path(action == NULL)) {
@@ -1416,6 +1422,8 @@ nxt_http_action_t *
 nxt_http_pass_application(nxt_task_t *task, nxt_router_temp_conf_t *tmcf,
     nxt_str_t *name)
 {
+    //nxt_log(task, NXT_LOG_INFO, "daks in nxt_http_pass_application");
+    
     nxt_http_action_t  *action;
 
     action = nxt_mp_alloc(tmcf->router_conf->mem_pool,

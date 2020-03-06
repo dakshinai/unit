@@ -340,6 +340,8 @@ nxt_http_application_handler(nxt_task_t *task, nxt_http_request_t *r,
     } else {
         nxt_str_set(&r->server_name, "localhost");
     }
+    
+    nxt_log(task, NXT_LOG_INFO, "daks server name = %V", &r->server_name);
 
     r->app_target = action->target;
 

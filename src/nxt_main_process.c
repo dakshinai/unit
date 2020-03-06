@@ -10,6 +10,7 @@
 #include <nxt_main_process.h>
 #include <nxt_conf.h>
 #include <nxt_router.h>
+#include <nxt_application_kernel.h>
 #if (NXT_TLS)
 #include <nxt_cert.h>
 #endif
@@ -31,6 +32,7 @@ typedef struct {
 
 extern nxt_port_handlers_t  nxt_controller_process_port_handlers;
 extern nxt_port_handlers_t  nxt_router_process_port_handlers;
+extern nxt_port_handlers_t  nxt_application_kernel_process_port_handlers;
 
 
 static nxt_int_t nxt_main_process_port_create(nxt_task_t *task,
@@ -42,7 +44,11 @@ static nxt_int_t nxt_main_create_controller_process(nxt_task_t *task,
     nxt_runtime_t *rt, nxt_process_init_t *init);
 static nxt_int_t nxt_main_create_router_process(nxt_task_t *task, nxt_runtime_t *rt,
     nxt_process_init_t *init);
+static nxt_int_t nxt_main_create_application_kernel_process(nxt_task_t *task, nxt_runtime_t *rt,
+    nxt_process_init_t *init);
 static nxt_int_t nxt_main_start_router_process(nxt_task_t *task,
+    nxt_runtime_t *rt);
+static nxt_int_t nxt_main_start_application_kernel_process(nxt_task_t *task,
     nxt_runtime_t *rt);
 static nxt_int_t nxt_main_start_discovery_process(nxt_task_t *task,
     nxt_runtime_t *rt);
@@ -134,7 +140,8 @@ static const nxt_port_handlers_t  *nxt_process_port_handlers[NXT_PROCESS_MAX] =
     &nxt_discovery_process_port_handlers,
     &nxt_controller_process_port_handlers,
     &nxt_router_process_port_handlers,
-    &nxt_app_process_port_handlers
+    &nxt_app_process_port_handlers,
+    &nxt_application_kernel_process_port_handlers
 };
 
 
@@ -143,7 +150,8 @@ static const nxt_process_start_t  nxt_process_starts[NXT_PROCESS_MAX] = {
     nxt_discovery_start,
     nxt_controller_start,
     nxt_router_start,
-    nxt_app_start
+    nxt_app_start,
+    nxt_application_kernel_start
 };
 
 
@@ -152,7 +160,8 @@ static const nxt_process_restart_t  nxt_process_restarts[NXT_PROCESS_MAX] = {
     NULL,
     &nxt_main_create_controller_process,
     &nxt_main_create_router_process,
-    NULL
+    NULL,
+    NULL    
 };
 
 
@@ -650,6 +659,8 @@ nxt_main_start_router_process(nxt_task_t *task, nxt_runtime_t *rt)
 
     static const nxt_str_t  name = nxt_string("router");
 
+    //nxt_log(task, NXT_LOG_INFO, "nxt_main_start_router_process");
+
     init = nxt_process_init_create(task, NXT_PROCESS_ROUTER, &name);
     if (nxt_slow_path(init == NULL)) {
         return NXT_ERROR;
@@ -660,6 +671,27 @@ nxt_main_start_router_process(nxt_task_t *task, nxt_runtime_t *rt)
 
 
 static nxt_int_t
+nxt_main_start_application_kernel_process(nxt_task_t *task, nxt_runtime_t *rt)
+{
+    nxt_process_init_t  *init;
+
+    static const nxt_str_t  name = nxt_string("application_kernel");
+
+    //nxt_log(task, NXT_LOG_INFO, "nxt_main_start_application_kernel_process");
+
+    init = nxt_process_init_create(task, NXT_PROCESS_APPLICATION_KERNEL, &name);
+    if (nxt_slow_path(init == NULL)) {
+        return NXT_ERROR;
+    }
+
+    //nxt_log(task, NXT_LOG_INFO, "nxt_main_start_application_kernel_process init create");
+
+    return nxt_main_create_application_kernel_process(task, rt, init);
+}
+
+
+
+static nxt_int_t
 nxt_main_create_router_process(nxt_task_t *task, nxt_runtime_t *rt,
     nxt_process_init_t *init)
 {
@@ -667,6 +699,21 @@ nxt_main_create_router_process(nxt_task_t *task, nxt_runtime_t *rt,
 
     return nxt_main_create_worker_process(task, rt, init);
 }
+
+
+static nxt_int_t
+nxt_main_create_application_kernel_process(nxt_task_t *task, nxt_runtime_t *rt,
+    nxt_process_init_t *init)
+{
+    //nxt_log(task, NXT_LOG_INFO, "nxt_main_create_application_kernel_process1");
+
+    nxt_main_stop_worker_processes(task, rt);
+
+    //nxt_log(task, NXT_LOG_INFO, "nxt_main_create_application_kernel_process2");
+
+    return nxt_main_create_worker_process(task, rt, init);    
+}
+
 
 
 static nxt_int_t
@@ -782,7 +829,7 @@ nxt_main_create_worker_process(nxt_task_t *task, nxt_runtime_t *rt,
         return ret;
     }
 
-    pid = nxt_process_create(task, process);
+    pid = nxt_process_create(task, process);    
 
     switch (pid) {
 
@@ -790,21 +837,26 @@ nxt_main_create_worker_process(nxt_task_t *task, nxt_runtime_t *rt,
         nxt_port_close(task, port);
         nxt_port_use(task, port, -1);
 
+        //nxt_log(task, NXT_LOG_INFO, "daks nxt_main_create_worker_process pid -1");
+
         return NXT_ERROR;
 
     case 0:
         /* A worker process, return to the event engine work queue loop. */
         nxt_port_use(task, port, -1);
+        //nxt_log(task, NXT_LOG_INFO, "daks nxt_main_create_worker_process pid 0");
 
         return NXT_AGAIN;
 
     default:
         /* The main process created a new process. */
 
-        nxt_port_read_close(port);
+        nxt_port_read_close(task, port);
         nxt_port_write_enable(task, port);
 
         nxt_port_use(task, port, -1);
+
+        //nxt_log(task, NXT_LOG_INFO, "daks nxt_main_create_worker_process pid new");
 
         return NXT_OK;
     }
@@ -1337,6 +1389,8 @@ nxt_main_port_modules_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
     nxt_conf_value_t       *conf, *root, *value;
     nxt_app_lang_module_t  *lang;
 
+    //nxt_log(task, NXT_LOG_INFO, "nxt_main_port_modules_handler invoked");
+
     static nxt_str_t root_path = nxt_string("/");
 
     rt = task->thread->runtime;
@@ -1379,12 +1433,12 @@ nxt_main_port_modules_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
               b->mem.free - b->mem.pos, b->mem.pos);
 
     conf = nxt_conf_json_parse(mp, b->mem.pos, b->mem.free, NULL);
-    if (conf == NULL) {
+    if (conf == NULL) {        
         goto fail;
     }
 
     root = nxt_conf_get_path(conf, &root_path);
-    if (root == NULL) {
+    if (root == NULL) {       
         goto fail;
     }
 
@@ -1395,7 +1449,7 @@ nxt_main_port_modules_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
         }
 
         lang = nxt_array_add(rt->languages);
-        if (lang == NULL) {
+        if (lang == NULL) {            
             goto fail;
         }
 
@@ -1404,7 +1458,7 @@ nxt_main_port_modules_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
         ret = nxt_conf_map_object(rt->mem_pool, value, nxt_app_lang_module_map,
                                   nxt_nitems(nxt_app_lang_module_map), lang);
 
-        if (ret != NXT_OK) {
+        if (ret != NXT_OK) {            
             goto fail;
         }
 
@@ -1413,16 +1467,21 @@ nxt_main_port_modules_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg)
     }
 
     qsort(rt->languages->elts, rt->languages->nelts,
-          sizeof(nxt_app_lang_module_t), nxt_app_lang_compare);
+          sizeof(nxt_app_lang_module_t), nxt_app_lang_compare);    
 
-fail:
-
+fail:    
     nxt_mp_destroy(mp);
 
     ret = nxt_main_start_controller_process(task, rt);
 
     if (ret == NXT_OK) {
-        (void) nxt_main_start_router_process(task, rt);
+            ret = nxt_main_start_router_process(task, rt);
+
+            if (ret ==NXT_OK){
+                //nxt_log(task, NXT_LOG_INFO, "call here6");
+                ret = nxt_main_start_application_kernel_process(task, rt);
+                nxt_log(task, NXT_LOG_INFO, "nxt_main_start_application_kernel_process ret=%d", ret);
+            }  
     }
 }
 
@@ -1786,6 +1845,8 @@ nxt_process_init_create(nxt_task_t *task, nxt_process_type_t type,
     nxt_int_t           ret;
     nxt_runtime_t       *rt;
     nxt_process_init_t  *init;
+
+    //nxt_log(task, NXT_LOG_INFO, "daks in nxt_process_init_create");
 
     mp = nxt_mp_create(1024, 128, 256, 32);
     if (nxt_slow_path(mp == NULL)) {

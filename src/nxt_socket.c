@@ -57,6 +57,7 @@ nxt_socket_close(nxt_task_t *task, nxt_socket_t s)
         nxt_debug(task, "socket close(%d)", s);
 
     } else {
+        nxt_log(task, NXT_LOG_INFO, "socket close(%d) failed %E", s, nxt_socket_errno);
         nxt_alert(task, "socket close(%d) failed %E", s, nxt_socket_errno);
     }
 }

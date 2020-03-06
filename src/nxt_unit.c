@@ -754,7 +754,7 @@ nxt_unit_process_msg(nxt_unit_ctx_t *ctx, nxt_unit_port_id_t *port_id,
     switch (port_msg->type) {
 
     case _NXT_PORT_MSG_QUIT:
-        nxt_unit_debug(ctx, "#%"PRIu32": quit", port_msg->stream);
+        //nxt_unit_log(ctx,NXT_LOG_INFO, "#%"PRIu32": quit daks", port_msg->stream);
 
         cb->quit(ctx);
         rc = NXT_UNIT_OK;
@@ -781,8 +781,8 @@ nxt_unit_process_msg(nxt_unit_ctx_t *ctx, nxt_unit_port_id_t *port_id,
 
     case _NXT_PORT_MSG_MMAP:
         if (nxt_slow_path(recv_msg.fd < 0)) {
-            nxt_unit_alert(ctx, "#%"PRIu32": invalid fd %d for mmap",
-                           port_msg->stream, recv_msg.fd);
+            //nxt_unit_log(ctx, NXT_LOG_INFO, "#%"PRIu32": invalid fd %d for mmap daks",
+                           //port_msg->stream, recv_msg.fd);
 
             goto fail;
         }
@@ -800,17 +800,17 @@ nxt_unit_process_msg(nxt_unit_ctx_t *ctx, nxt_unit_port_id_t *port_id,
 
     case _NXT_PORT_MSG_REMOVE_PID:
         if (nxt_slow_path(recv_msg.size != sizeof(pid))) {
-            nxt_unit_warn(ctx, "#%"PRIu32": remove_pid: invalid message size "
-                          "(%d != %d)", port_msg->stream, (int) recv_msg.size,
-                          (int) sizeof(pid));
+            //nxt_unit_log(ctx,NXT_LOG_INFO, "#%"PRIu32": remove_pid: invalid message size daks "
+                          //"(%d != %d)", port_msg->stream, (int) recv_msg.size,
+                          //(int) sizeof(pid));
 
             goto fail;
         }
 
         memcpy(&pid, recv_msg.start, sizeof(pid));
 
-        nxt_unit_debug(ctx, "#%"PRIu32": remove_pid: %d",
-                       port_msg->stream, (int) pid);
+        //nxt_unit_log(ctx,NXT_LOG_INFO, "#%"PRIu32": remove_pid: %d daks",
+                       //port_msg->stream, (int) pid);
 
         cb->remove_pid(ctx, pid);
 
@@ -822,8 +822,8 @@ nxt_unit_process_msg(nxt_unit_ctx_t *ctx, nxt_unit_port_id_t *port_id,
         break;
 
     default:
-        nxt_unit_debug(ctx, "#%"PRIu32": ignore message type: %d",
-                       port_msg->stream, (int) port_msg->type);
+        //nxt_unit_log(ctx,NXT_LOG_INFO, "#%"PRIu32": ignore message type: %d daks",
+                       //port_msg->stream, (int) port_msg->type);
 
         goto fail;
     }

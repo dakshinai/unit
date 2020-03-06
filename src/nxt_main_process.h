@@ -33,6 +33,7 @@ void nxt_main_stop_all_processes(nxt_task_t *task, nxt_runtime_t *runtime);
 
 nxt_int_t nxt_controller_start(nxt_task_t *task, void *data);
 nxt_int_t nxt_router_start(nxt_task_t *task, void *data);
+nxt_int_t nxt_application_kernel_start(nxt_task_t *task, void *data);
 nxt_int_t nxt_discovery_start(nxt_task_t *task, void *data);
 nxt_int_t nxt_app_start(nxt_task_t *task, void *data);
 

@@ -263,7 +263,7 @@ void nxt_port_close(nxt_task_t *task, nxt_port_t *port);
 void nxt_port_write_enable(nxt_task_t *task, nxt_port_t *port);
 void nxt_port_write_close(nxt_port_t *port);
 void nxt_port_read_enable(nxt_task_t *task, nxt_port_t *port);
-void nxt_port_read_close(nxt_port_t *port);
+void nxt_port_read_close(nxt_task_t *task, nxt_port_t *port);
 nxt_int_t nxt_port_socket_twrite(nxt_task_t *task, nxt_port_t *port,
     nxt_uint_t type, nxt_fd_t fd, uint32_t stream, nxt_port_id_t reply_port,
     nxt_buf_t *b, void *tracking);
@@ -273,6 +273,8 @@ nxt_port_socket_write(nxt_task_t *task, nxt_port_t *port,
     nxt_uint_t type, nxt_fd_t fd, uint32_t stream, nxt_port_id_t reply_port,
     nxt_buf_t *b)
 {
+    //nxt_log(task, NXT_LOG_INFO, "daks nxt_port_socket_write called");
+
     return nxt_port_socket_twrite(task, port, type, fd, stream, reply_port, b,
                                   NULL);
 }

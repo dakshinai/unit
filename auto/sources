@@ -81,6 +81,7 @@ NXT_LIB_SRCS=" \
     src/nxt_worker_process.c \
     src/nxt_controller.c \
     src/nxt_router.c \
+    src/nxt_application_kernel.c \
     src/nxt_h1proto.c \
     src/nxt_http_request.c \
     src/nxt_http_response.c \

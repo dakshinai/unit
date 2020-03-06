@@ -1608,6 +1608,8 @@ nxt_runtime_port_add(nxt_task_t *task, nxt_port_t *port)
         return;
     }
 
+    //nxt_log(task, NXT_LOG_INFO, "port_by_type added");
+
     rt->port_by_type[port->type] = port;
 
     nxt_port_use(task, port, 1);
