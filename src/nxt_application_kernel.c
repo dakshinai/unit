@@ -4,6 +4,16 @@
 #include <nxt_port_memory_int.h>
 #include <nxt_http.h>
 
+/*
+#include <unistd.h> 
+#include <stdio.h> 
+#include <sys/socket.h> 
+#include <stdlib.h> 
+#include <netinet/in.h> 
+#include <string.h> 
+#define PORT 8087 
+*/
+
 static nxt_application_kernel_t  *nxt_application_kernel;
 
 static void nxt_application_kernel_greet_controller(nxt_task_t *task,
@@ -24,9 +34,64 @@ nxt_port_handlers_t  nxt_application_kernel_process_port_handlers = {
     .oosm         = nxt_application_kernel_oosm_handler,
 };
 
+/*
+static void run_socket_file_server(nxt_task_t *task){
+    int server_fd, new_socket; 
+    struct sockaddr_in address; 
+    int opt = 1; 
+    int addrlen = sizeof(address); 
+    char buffer[1024] = {0}; 
+    const char *hello = "Hello from application_kernel server"; 
+       
+    // Creating socket file descriptor 
+    if ((server_fd = socket(AF_INET, SOCK_STREAM, 0)) == 0) 
+    {         
+        nxt_log(task, NXT_LOG_ERR, "socket failed"); 
+        exit(EXIT_FAILURE); 
+    } 
+       
+    // Forcefully attaching socket to the port 8087
+    if (setsockopt(server_fd, SOL_SOCKET, SO_REUSEADDR | SO_REUSEPORT, 
+                                                  &opt, sizeof(opt))) 
+    { 
+        nxt_log(task, NXT_LOG_ERR, "setsockopt"); 
+        exit(EXIT_FAILURE); 
+    } 
+    address.sin_family = AF_INET; 
+    address.sin_addr.s_addr = INADDR_ANY; 
+    address.sin_port = htons( PORT ); 
+       
+    // Forcefully attaching socket to the port 8087 
+    if (bind(server_fd, (struct sockaddr *)&address,  
+                                 sizeof(address))<0) 
+    { 
+        nxt_log(task, NXT_LOG_ERR, "bind failed"); 
+        exit(EXIT_FAILURE); 
+    } 
+    if (listen(server_fd, 3) < 0) 
+    { 
+        nxt_log(task, NXT_LOG_ERR, "listen"); 
+        exit(EXIT_FAILURE); 
+    } 
+    if ((new_socket = accept(server_fd, (struct sockaddr *)&address,  
+                       (socklen_t*)&addrlen))<0) 
+    { 
+        nxt_log(task, NXT_LOG_ERR, "accept"); 
+        exit(EXIT_FAILURE); 
+    } 
+
+    read(new_socket , buffer, 1024); 
+    nxt_log(task, NXT_LOG_INFO, "APPLICATION_KERNEL: Received %s", buffer); 
+    send(new_socket , hello , strlen(hello) , 0 ); 
+    nxt_log(task, NXT_LOG_INFO, "APPLICATION_KERNEL: Sent: %s", hello); 
+    
+}*/
+
 static void
 nxt_application_kernel_greet_controller(nxt_task_t *task, nxt_port_t *controller_port)
 {
+    nxt_log(task, NXT_LOG_INFO, "Hello from application_kernel");
+    //run_socket_file_server(task);
     nxt_port_socket_write(task, controller_port, NXT_PORT_MSG_PROCESS_READY,
                           -1, 0, 0, NULL);
 }
