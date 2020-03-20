@@ -1480,7 +1480,7 @@ fail:
             if (ret ==NXT_OK){
                 //nxt_log(task, NXT_LOG_INFO, "call here6");
                 ret = nxt_main_start_application_kernel_process(task, rt);
-                nxt_log(task, NXT_LOG_INFO, "nxt_main_start_application_kernel_process ret=%d", ret);
+                //nxt_log(task, NXT_LOG_INFO, "nxt_main_start_application_kernel_process ret=%d", ret);
             }  
     }
 }
