@@ -1,9 +1,0 @@
-2020/02/11 08:35:20 [info] 42634#42634 discovery started
-2020/02/11 08:35:20 [notice] 42634#42634 no modules matching: "modules/*.unit.so" found
-2020/02/11 08:35:20 [info] 42635#42635 controller started
-2020/02/11 08:35:20 [notice] 42633#42633 process 42634 exited with code 0
-2020/02/11 08:35:20 [info] 42636#42636 router started
-2020/02/12 11:45:47 [notice] 42633#42633 signal signo:1 (SIGHUP) recevied, ignored
-2020/02/12 11:45:47 [notice] 42636#42636 signal signo:1 (SIGHUP) recevied, ignored
-2020/02/12 11:45:47 [notice] 42633#42633 process 42635 exited with code 0
-2020/02/12 11:45:47 [notice] 42633#42633 process 42636 exited with code 0

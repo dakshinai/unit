@@ -25,3 +25,4 @@ struct nxt_application_kernel_access_log_s {
 };
 
 void nxt_application_kernel_new_port_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg);
+void nxt_application_kernel_data_handler(nxt_task_t *task, nxt_port_recv_msg_t *msg);

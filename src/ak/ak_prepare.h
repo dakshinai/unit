@@ -81,52 +81,46 @@ static u32 opt_xdp_bind_flags;
 static int opt_xsk_frame_size = XSK_UMEM__DEFAULT_FRAME_SIZE;
 static bool opt_need_wakeup = true;
 static u32 opt_num_xsks = 1;
-static u32 prog_id;
+//static u32 prog_id;
 
 struct xsk_umem_info_shared
 {
     struct xsk_ring_prod fq;
     struct xsk_ring_cons cq;
     struct xsk_umem umem;
-    void *buffer; //refactor to remove this
+    void *buffer; // TODO: refactor to remove this
 };
 
 //TODO: This will later change based on the number of dependent applications
 const char *AK_share_name = "AK_shared_memory";
 const char *umem_area_share_name = "AK_umem_shared_memory";
-const int shm_size = 4096 * 4096;
-int ak_shm_fd;
-int umem_shm_fd;
+const int AK_share_size = 4096 * 4096;
 struct xsk_umem_info_shared **umem_ptr = NULL;
 
-static void remove_xdp_program(void)
+/*static void AK_unmap_umem_shared_memory(struct xsk_umem_info_shared *umem)
 {
-    u32 curr_prog_id = 0;
-
-    if (bpf_get_link_xdp_id(opt_ifindex, &curr_prog_id, opt_xdp_flags))
+    if (!umem)
     {
-        fprintf(stderr, "bpf_get_link_xdp_id failed\n");
-        exit(EXIT_FAILURE);
+        munmap(umem->buffer, NUM_FRAMES * opt_xsk_frame_size);
+        munmap(umem, sizeof(struct xsk_umem_info_shared));
     }
-    if (prog_id == curr_prog_id)
-        bpf_set_link_xdp_fd(opt_ifindex, -1, opt_xdp_flags);
-    else if (!curr_prog_id)
-        fprintf(stderr, "couldn't find a prog id on a given interface\n");
-    else
-        fprintf(stderr, "program on interface changed, not removing\n");
 }
 
 static void int_exit_shared(int sig)
 {
 
     struct xsk_umem_info_shared *umem = *umem_ptr;
-    (void)xsk_umem__delete(&umem->umem);
-    remove_xdp_program();
+    if (!umem)
+    {
+        (void)xsk_umem__delete_shared(&umem->umem);
+        AK_unmap_umem_shared_memory(umem);
+    }
+
     shm_unlink(AK_share_name);
     shm_unlink(umem_area_share_name);
 
     exit(EXIT_SUCCESS);
-}
+}*/
 
 /*
 static void __exit_with_error(int error, const char *file, const char *func,
@@ -151,38 +145,6 @@ static void __print_with_error(int error, const char *file, const char *func,
 
 #define print_with_error(error) \
     __print_with_error(error, __FILE__, __func__, __LINE__)
-
-static int load_xdp_program(char **argv, struct bpf_object **obj)
-{
-    struct bpf_prog_load_attr prog_load_attr = {
-        .prog_type = BPF_PROG_TYPE_XDP,
-    };
-    char xdp_filename[256];
-    int prog_fd;
-
-    snprintf(xdp_filename, sizeof(xdp_filename), "%s_kern.o", argv[0]);
-    prog_load_attr.file = xdp_filename;
-
-    if (bpf_prog_load_xattr(&prog_load_attr, obj, &prog_fd))
-    {
-        return -1;
-    }
-
-    if (prog_fd < 0)
-    {
-        fprintf(stderr, "ERROR: no program found: %s\n",
-                strerror(prog_fd));
-        return -1;
-    }
-
-    if (bpf_set_link_xdp_fd(opt_ifindex, prog_fd, opt_xdp_flags) < 0)
-    {
-        fprintf(stderr, "ERROR: link set xdp fd failed\n");
-        return -1;
-    }
-
-    return 0;
-}
 
 static struct option long_options[] = {
     {"rxdrop", no_argument, 0, 'r'},
@@ -226,7 +188,7 @@ static void usage(const char *prog)
         "  -F, --force		Force loading the XDP prog\n"
         "\n";
     fprintf(stderr, str, prog, XSK_UMEM__DEFAULT_FRAME_SIZE);
-    //exit(EXIT_FAILURE);
+    exit(EXIT_FAILURE);
 }
 
 static void parse_command_line(int argc, char **argv)
@@ -349,7 +311,7 @@ xsk_configure_umem_shared(int shm_fd, int umem_shm_fd, int umem_size,
     }
 
     int ret = xsk_umem__create_shared(&umem->umem, umem->buffer, umem_size,
-                                      &umem->fq, &umem->cq, &cfg, shm_fd);
+                                      &umem->fq, &umem->cq, &cfg);
 
     if (ret < 0)
     {
@@ -412,21 +374,9 @@ static int AK_send_fds(int socket, int *fds, int n)
     return sendmsg(socket, &message, 0);
 }
 
-/*static int AK_create_shared_memory(const char *name, int size)
+static int AK_create_shared_memory_region()
 {
-    // create the shared memory object 
-    int shm_fd = shm_open(name, O_CREAT | O_RDWR, 0666);
-    if (shm_fd < 0)
-        return shm_fd;
-    // configure the size of the shared memory object 
-    ftruncate(shm_fd, size);
-    return shm_fd;
-}*/
-
-static int AK_create_shared_memory_regions()
-{
-    int ret;
-
+    int ak_shm_fd;
     ak_shm_fd = shm_open(AK_share_name, O_CREAT | O_RDWR, 0666);
     if (ak_shm_fd < 0)
     {
@@ -434,7 +384,8 @@ static int AK_create_shared_memory_regions()
         return -1;
     }
 
-    ret = ftruncate(ak_shm_fd, shm_size);
+    int ret;
+    ret = ftruncate(ak_shm_fd, AK_share_size);
     if (ret < 0)
     {
         fprintf(stderr, "ERROR: unable to set AK shared memory size\n");
@@ -442,6 +393,12 @@ static int AK_create_shared_memory_regions()
         return -errno;
     }
 
+    return ak_shm_fd;
+}
+
+static int AK_create_umem_shared_memory_region(int size)
+{
+    int umem_shm_fd;
     umem_shm_fd = shm_open(umem_area_share_name, O_CREAT | O_RDWR, 0666);
     if (umem_shm_fd < 0)
     {
@@ -449,7 +406,8 @@ static int AK_create_shared_memory_regions()
         return -1;
     }
 
-    ret = ftruncate(umem_shm_fd, shm_size);
+    int ret;
+    ret = ftruncate(umem_shm_fd, size);
     if (ret < 0)
     {
         fprintf(stderr, "ERROR: unable to set AK umem shared memory size\n");
@@ -457,13 +415,15 @@ static int AK_create_shared_memory_regions()
         return -errno;
     }
 
-    return 0;
+    return umem_shm_fd;
 }
-static struct xsk_umem_info_shared *AK_create_umem_shared_memory()
+
+static struct xsk_umem_info_shared *AK_create_umem_shared_memory(int ak_shm_fd, int umem_shm_fd, int umem_size,
+                                                                 int umem_mmap_flags)
 {
     return xsk_configure_umem_shared(ak_shm_fd, umem_shm_fd,
-                                     NUM_FRAMES * opt_xsk_frame_size,
-                                     opt_mmap_flags);
+                                     umem_size,
+                                     umem_mmap_flags);
 }
 
 static int AK_socket_send_umem_fd(int fd)
@@ -512,6 +472,7 @@ static int AK_socket_send_umem_fd(int fd)
     //TODO: Later co-relate requests
     for (;;)
     {
+        fprintf(stdout, "wait on accept");
         conn = accept(sock, NULL, 0);
         if (conn < 0)
         {
